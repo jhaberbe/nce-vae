@@ -70,6 +70,7 @@ def train_nc_vae(
             discriminator_loss = bce_loss_true + bce_loss_sampled
 
             discriminator_loss.backward()
+            torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)
             optimizer_discriminator.step()
 
             vae.train()
@@ -91,6 +92,7 @@ def train_nc_vae(
             vae_loss = reconstruction_loss + nce_loss
 
             vae_loss.backward()
+            torch.nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1.0)
             optimizer_generative.step()
 
             wandb.log({
