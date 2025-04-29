@@ -7,10 +7,10 @@ from .model import *
 
 def train_nc_vae(
         X, 
-        vae: NCVAE, 
-        discriminator: NCVAEDiscriminator, 
-        wandb_project: str = "nce-vae",
-        wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon",
+        vae, 
+        discriminator, 
+        wandb_project = "nce-vae",
+        wandb_name = "kanna-kanna-kanna-kanna-kanna-chameleon",
 ):
     # Not sure if I want to give a user more control.
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
@@ -104,12 +104,14 @@ import wandb
 
 def amped_up_train_nc_vae(
     X,
-    vae: NCVAE,
-    discriminator: NCVAEDiscriminator,
-    device: torch.device,
-    wandb_project: str = "nce-vae",
-    wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon"
+    vae,
+    discriminator,
+    wandb_project = "nce-vae",
+    wandb_name = "kanna-kanna-kanna-kanna-kanna-chameleon"
 ):
+    # Not sure if I want to give a user more control.
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
+
     # Dataset
     dataloader_recon, dataloader_nce = generate_datasets(X)
 
