@@ -69,7 +69,6 @@ def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project
             vae_loss.backward()
             optimizer_generative.step()
 
-            # ==================== Logging ====================
             wandb.log({
                 'vae_loss': vae_loss.item(),
                 'reconstruction_loss': reconstruction_loss.item(),
