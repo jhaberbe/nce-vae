@@ -2,8 +2,8 @@ import wandb
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
-from data import *
-from model import *
+from .data import *
+from .model import *
 
 def train_nc_vae(
         X, 

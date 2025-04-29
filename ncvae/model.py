@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.distributions import Normal, NegativeBinomial, Categorical, MixtureSameFamily, Independent
 
-from base import * 
+from .base import * 
 
 class MixtureVAE(nn.Module):
     """Uses a mixture of Gaussians to approximate the latent space, as opposed to KL divergence for regularization. Acheives reasonable results."""
