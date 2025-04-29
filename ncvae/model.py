@@ -46,7 +46,7 @@ class NCVAE(nn.Module):
     """VAE with Noise Contrastive Estimation to regularize the latent space."""
 
     def __init__(self, input_dim: int, hidden_dim: int = 128, latent_dim: int = 64):
-        super(VAE, self).__init__()
+        super(NCVAE, self).__init__()
         # Message Passing
         self.message_sender = MessageSender(X.shape[1])
         self.message_receiver = MessageReceiver(X.shape[1])
@@ -70,6 +70,7 @@ class NCVAEDiscriminator(nn.Module):
     """Very simple discriminator module for the latent space"""
     
     def __init__(self, latent_dim: int = 64):
+        super(NCVAEDiscriminator, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(latent_dim, latent_dim // 2),
             nn.LeakyReLU(0.2),
