@@ -1,4 +1,3 @@
-#FIXME: CLEAN THIS SHIT
 import wandb
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, random_split
@@ -6,7 +5,15 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 from data import *
 from model import *
 
-def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project: str = "nce-vae", wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon", device: str = 'cpu'):
+def train_nc_vae(
+        X, 
+        vae: NCVAE, 
+        discriminator: NCVAEDiscriminator, 
+        wandb_project: str = "nce-vae",
+        wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon",
+):
+    # Not sure if I want to give a user more control.
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
 
     vae.to(device)
     discriminator.to(device)
@@ -17,8 +24,14 @@ def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project
     # WanDB
     wandb.init(project=wandb_project, name=wandb_name)
 
-    optimizer_generative = torch.optim.Adam(vae.parameters(), lr=1e-4)
-    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=1e-4)
+    optimizer_generative = torch.optim.Adam(
+        vae.parameters(), 
+        lr=1e-4
+    )
+    optimizer_discriminator = torch.optim.Adam(
+        discriminator.parameters(), 
+        lr=1e-4
+    )
 
     for epoch in range(1000):
         recon_iter = iter(dataloader_recon)
@@ -42,8 +55,15 @@ def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project
             pred_true = discriminator(z_true)
             pred_sampled = discriminator(z_sampled)
 
-            bce_loss_true = F.binary_cross_entropy(pred_true, torch.ones_like(pred_true))
-            bce_loss_sampled = F.binary_cross_entropy(pred_sampled, torch.zeros_like(pred_sampled))
+            bce_loss_true = F.binary_cross_entropy(
+                pred_true,
+                torch.ones_like(pred_true)
+            )
+            bce_loss_sampled = F.binary_cross_entropy(
+                pred_sampled, 
+                torch.zeros_like(pred_sampled)
+            )
+
             discriminator_loss = bce_loss_true + bce_loss_sampled
 
             discriminator_loss.backward()
@@ -62,7 +82,8 @@ def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project
             pred_true = discriminator(z_true)
             pred_sampled = discriminator(z_sampled)
 
-            nce_loss = -(torch.log(pred_true + 1e-8).mean() + torch.log(1 - pred_sampled + 1e-8).mean())
+            nce_loss = -(torch.log(pred_true + 1e-8).mean() + \
+                torch.log(1 - pred_sampled + 1e-8).mean())
 
             vae_loss = reconstruction_loss + nce_loss
 
@@ -75,4 +96,106 @@ def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project
                 'nce_loss': nce_loss.item(),
                 'discriminator_loss': discriminator_loss.item(),
             })
-        
+
+import torch
+import torch.nn.functional as F
+from torch.cuda.amp import autocast, GradScaler
+import wandb
+
+def amped_up_train_nc_vae(
+    X,
+    vae: NCVAE,
+    discriminator: NCVAEDiscriminator,
+    device: torch.device,
+    wandb_project: str = "nce-vae",
+    wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon"
+):
+    # Dataset
+    dataloader_recon, dataloader_nce = generate_datasets(X)
+
+    # Move models to device
+    vae.to(device)
+    discriminator.to(device)
+
+    # AMP scaler only if using CUDA
+    use_amp = device.type == 'cuda'
+    scaler = GradScaler() if use_amp else None
+
+    # WandB
+    wandb.init(project=wandb_project, name=wandb_name)
+
+    optimizer_generative = torch.optim.Adam(vae.parameters(), lr=1e-4)
+    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=1e-4)
+
+    for epoch in range(1000):
+        recon_iter = iter(dataloader_recon)
+        nce_iter = iter(dataloader_nce)
+
+        while True:
+            try:
+                batch_recon = next(recon_iter)[0].to(device)
+                batch_nce = next(nce_iter)[0].to(device)
+            except StopIteration:
+                break
+
+            # ----------------- Discriminator Step -----------------
+            discriminator.train()
+            optimizer_discriminator.zero_grad()
+
+            with torch.no_grad():
+                z_true, _ = vae.message_sender.forward(batch_nce)
+                z_sampled = vae.message_sender.sample(batch_nce)
+
+            pred_true = discriminator(z_true)
+            pred_sampled = discriminator(z_sampled)
+
+            bce_loss_true = F.binary_cross_entropy(pred_true, torch.ones_like(pred_true, device=device))
+            bce_loss_sampled = F.binary_cross_entropy(pred_sampled, torch.zeros_like(pred_sampled, device=device))
+            discriminator_loss = bce_loss_true + bce_loss_sampled
+
+            discriminator_loss.backward()
+            optimizer_discriminator.step()
+
+            # ----------------- VAE Step -----------------
+            vae.train()
+            optimizer_generative.zero_grad()
+
+            if use_amp:
+                with autocast():
+                    reconstruction_loss = vae.loss(batch_recon)
+
+                    z_true, _ = vae.message_sender.forward(batch_nce)
+                    z_sampled = vae.message_sender.sample(batch_nce)
+
+                    pred_true = discriminator(z_true)
+                    pred_sampled = discriminator(z_sampled)
+
+                    nce_loss = -(torch.log(pred_true + 1e-8).mean() + torch.log(1 - pred_sampled + 1e-8).mean())
+                    vae_loss = reconstruction_loss + nce_loss
+
+                scaler.scale(vae_loss).backward()
+                scaler.step(optimizer_generative)
+                scaler.update()
+            else:
+                reconstruction_loss = vae.loss(batch_recon)
+
+                z_true, _ = vae.message_sender.forward(batch_nce)
+                z_sampled = vae.message_sender.sample(batch_nce)
+
+                pred_true = discriminator(z_true)
+                pred_sampled = discriminator(z_sampled)
+
+                nce_loss = -(torch.log(pred_true + 1e-8).mean() + torch.log(1 - pred_sampled + 1e-8).mean())
+                vae_loss = reconstruction_loss + nce_loss
+
+                vae_loss.backward()
+                optimizer_generative.step()
+
+            # ----------------- Logging -----------------
+            wandb.log({
+                'vae_loss': vae_loss.item(),
+                'reconstruction_loss': reconstruction_loss.item(),
+                'nce_loss': nce_loss.item(),
+                'discriminator_loss': discriminator_loss.item(),
+            })
+

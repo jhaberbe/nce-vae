@@ -70,6 +70,3 @@ class MessageReceiver(nn.Module):
         alpha = self.alpha_decoder(z)
         beta = self.beta_decoder(z)
         return F.softplus(alpha), beta
-
-
-
