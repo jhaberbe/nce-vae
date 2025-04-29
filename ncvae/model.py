@@ -48,8 +48,8 @@ class NCVAE(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 128, latent_dim: int = 64):
         super(NCVAE, self).__init__()
         # Message Passing
-        self.message_sender = MessageSender(X.shape[1])
-        self.message_receiver = MessageReceiver(X.shape[1])
+        self.message_sender = MessageSender(input_dim)
+        self.message_receiver = MessageReceiver(input_dim)
 
     def forward(self, x):
         z = self.message_sender.sample(x)
