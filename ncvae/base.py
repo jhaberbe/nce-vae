@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.distributions import Normal, NegativeBinomial, Categorical, MixtureSameFamily, Independent
 
 class Encoder(nn.Module):

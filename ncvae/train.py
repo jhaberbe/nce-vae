@@ -1,6 +1,9 @@
 import wandb
+import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, random_split
+from torch.cuda.amp import autocast, GradScaler
+import wandb
 
 from .data import *
 from .model import *
@@ -96,11 +99,6 @@ def train_nc_vae(
                 'nce_loss': nce_loss.item(),
                 'discriminator_loss': discriminator_loss.item(),
             })
-
-import torch
-import torch.nn.functional as F
-from torch.cuda.amp import autocast, GradScaler
-import wandb
 
 def amped_up_train_nc_vae(
     X,
