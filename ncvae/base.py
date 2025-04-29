@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-
+from torch.distributions import Normal, NegativeBinomial, Categorical, MixtureSameFamily, Independent
 
 class Encoder(nn.Module):
     """Simple Encoder Module"""
