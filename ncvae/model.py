@@ -10,8 +10,8 @@ class MixtureVAE(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 128, latent_dim: int = 64, n_gaussians: int = 10):
         super(VAE, self).__init__()
         # Message Passing
-        self.message_sender = MessageSender(X.shape[1])
-        self.message_receiver = MessageReceiver(X.shape[1])
+        self.message_sender = MessageSender(input_dim)
+        self.message_receiver = MessageReceiver(input_dim)
 
         # Latent Representation Regularization
         self.n_gaussians = n_gaussians

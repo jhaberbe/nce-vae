@@ -63,8 +63,8 @@ class MessageReceiver(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 128, latent_dim: int = 64):
         super(MessageReceiver, self).__init__()
 
-        self.alpha_decoder = Decoder(X.shape[1])
-        self.beta_decoder = Decoder(X.shape[1])
+        self.alpha_decoder = Decoder(input_dim)
+        self.beta_decoder = Decoder(input_dim)
 
     def forward(self, z):
         alpha = self.alpha_decoder(z)
