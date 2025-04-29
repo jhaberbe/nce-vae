@@ -6,7 +6,10 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 from data import *
 from model import *
 
-def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project: str = "nce-vae", wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon"):
+def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project: str = "nce-vae", wandb_name: str = "kanna-kanna-kanna-kanna-kanna-chameleon", device: str = 'cpu'):
+
+    vae.to(device)
+    discriminator.to(device)
 
     # Prepare Dataset
     dataloader_recon, dataloader_nce = generate_datasets(X)
@@ -23,8 +26,8 @@ def train_nc_vae(X, vae: NCVAE, discriminator: NCVAEDiscriminator, wandb_project
 
         while True:
             try:
-                batch_recon = next(recon_iter)[0]
-                batch_nce = next(nce_iter)[0]
+                batch_recon = next(recon_iter)[0].to(device)
+                batch_nce = next(nce_iter)[0].to(device)
             except StopIteration:
                 # If either iterator runs out of data, end epoch
                 break
