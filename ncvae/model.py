@@ -16,8 +16,8 @@ class MixtureVAE(nn.Module):
         # Latent Representation Regularization
         self.n_gaussians = n_gaussians
         self.weights = nn.Parameter(torch.zeros(self.n_gaussians))
-        self.means = nn.Parameter(torch.zeros(self.n_gaussians, 64))
-        self.logstds = nn.Parameter(torch.zeros(self.n_gaussians, 64))
+        self.means = nn.Parameter(torch.zeros(self.n_gaussians, latent_dim))
+        self.logstds = nn.Parameter(torch.zeros(self.n_gaussians, latent_dim))
 
     def forward(self, x):
         z = self.message_sender.sample(x)
@@ -71,11 +71,11 @@ class NCVAEDiscriminator(nn.Module):
     
     def __init__(self, latent_dim: int = 64):
         self.model = nn.Sequential(
-            nn.Linear(64, 64 // 2),
+            nn.Linear(latent_dim, latent_dim // 2),
             nn.LeakyReLU(0.2),
-            nn.Linear(64 // 2, 64 // 4),
+            nn.Linear(latent_dim // 2, latent_dim // 4),
             nn.LeakyReLU(0.2),
-            nn.Linear(64 // 4, 1),
+            nn.Linear(latent_dim // 4, 1),
             nn.Sigmoid()
         )
 
