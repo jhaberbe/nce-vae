@@ -36,6 +36,7 @@ class MixtureVAE(nn.Module):
         return (latent_nll + nb_nll).mean()
 
 class NCVAE(nn.Module):
+    """VAE with Noise Contrastive Estimation and batch effect correction."""
     # STACK IT UP
     # STACK IT UP
     # STACK IT UP
@@ -43,28 +44,30 @@ class NCVAE(nn.Module):
     # STACK IT UP
     # STACK IT UP
     # STACK IT UP
-    """VAE with Noise Contrastive Estimation to regularize the latent space."""
 
-    def __init__(self, input_dim: int, hidden_dim: int = 128, latent_dim: int = 64):
+    def __init__(self, input_dim: int, batch_dim: int, hidden_dim: int = 128, latent_dim: int = 64):
         super(NCVAE, self).__init__()
-        # Message Passing
         self.message_sender = MessageSender(input_dim)
         self.message_receiver = MessageReceiver(input_dim)
+        self.batch_effect_layer = nn.Linear(batch_dim, input_dim, bias=False)
 
-    def forward(self, x):
+    def forward(self, x, x_batch):
         z = self.message_sender.sample(x)
         alpha, beta = self.message_receiver(z)
+        beta = beta + self.batch_effect_layer(x_batch)
         return z, alpha, beta
 
     def latent_representation(self, x):
-        z, alpha, beta = self.forward(x)
+        z, _, _ = self.forward(x, torch.zeros_like(x[:, :1]))  # dummy batch
         return z
 
-    def loss(self, x):
-        z, alpha, beta = self.forward(x)
+    def loss(self, x, x_batch):
+        z, alpha, beta = self.forward(x, x_batch)
         beta += (x.sum(axis=1, keepdims=True) / x.sum(axis=1, keepdims=True).mean()).log()
         nb_nll = -NegativeBinomial(total_count=alpha, logits=beta).log_prob(x).sum(axis=1)
-        return (nb_nll).mean()
+        return nb_nll.mean()
+
+
 
 class NCVAEDiscriminator(nn.Module):
     """Very simple discriminator module for the latent space"""
